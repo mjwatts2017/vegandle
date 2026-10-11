@@ -19,11 +19,12 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sess
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///vegandle.db").replace("postgres://", "postgresql://", 1).replace("postgresql://", "postgresql+psycopg2://", 1)
 TZ = ZoneInfo(os.getenv("GAME_TZ", "America/New_York"))  # one "midnight" for everyone
 LAUNCH = date.fromisoformat(os.getenv("LAUNCH_DATE", "2026-10-06"))  # puzzle #1
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "change-me")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "change-me").strip().strip("\"'")  # ignore stray spaces/quotes
 PROD = os.getenv("APP_ENV", "dev") == "production"  # set APP_ENV=production when deployed
-print(f"startup check: prod={PROD} password_length={len(ADMIN_PASSWORD)}", flush=True)
 ADMIN_PATH = "/" + os.getenv("ADMIN_PATH", "/admin").strip("/")  # change it to hide it further
 SESSION_HOURS, MAX_FAILS, LOCKOUT_SECONDS = 12, 5, 15 * 60
+print(f"startup check: prod={PROD} password_set={'ADMIN_PASSWORD' in os.environ} "
+      f"password_length={len(ADMIN_PASSWORD)}", flush=True)  # never prints the password itself
 if PROD and ADMIN_PASSWORD == "change-me":
     raise RuntimeError("Set ADMIN_PASSWORD before running in production")
 ROUNDS = 5
@@ -177,7 +178,7 @@ def login(body: Login, request: Request, response: Response):
     recent = [t for t in FAILS.get(ip, []) if now - t < LOCKOUT_SECONDS]
     if len(recent) >= MAX_FAILS:
         raise HTTPException(429, "Too many attempts. Try again in 15 minutes.")
-    if not same(body.password, ADMIN_PASSWORD):
+    if not same(body.password.strip(), ADMIN_PASSWORD):
         FAILS[ip] = recent + [now]
         raise HTTPException(401, "Wrong password")
     FAILS.pop(ip, None)
