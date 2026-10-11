@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Vegandle admin</title>
+<style>
+:root{--bg:#f3f5f1;--ink:#14231a;--mute:#5b6b60;--card:#fff;--line:#d3ddd3;--bad:#c24a3d}
+@media (prefers-color-scheme:dark){:root{--bg:#101a14;--ink:#e8f0e9;--mute:#9bb0a1;--card:#18261e;--line:#2a3d31;--bad:#e8786b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:18px}
+h1{margin:0 0 8px;font-size:1.5rem}
+nav{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer}
+button.on,button.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.bad{color:var(--bad);border-color:var(--bad)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+label{display:block;font-size:.85rem;color:var(--mute);margin-top:10px}
+input,select,textarea{display:block;width:100%;margin-top:3px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+textarea{min-height:70px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.item{display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+.tag{font-size:.85rem;color:var(--mute)}
+.msg{color:var(--bad);min-height:1.2em;margin:8px 0 0}
+img.pv{max-height:120px;border-radius:8px;margin-top:8px}
+.day{display:grid;gap:6px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Vegandle admin</h1>
+  <div id="v"></div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const AN = {vegan: "Vegan", probably: "Probably vegan", not: "Not vegan"};
+let items = [], tab = "review", cur = null;
+const msg = t => { const m = $("#msg"); if (m) m.textContent = t || ""; };
+
+async function api(path, opt = {}) {
+  const r = await fetch("/api/admin/" + path, {
+    credentials: "same-origin", headers: {"Content-Type": "application/json"},
+    ...opt, body: opt.body ? JSON.stringify(opt.body) : undefined});
+  if (r.status === 401 && path !== "login") { showLogin(); throw new Error("Logged out"); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Invalid input");
+  return d;
+}
+
+function showLogin() {
+  $("#v").innerHTML = `<div class="card"><label>Admin password<input id="pw" type="password" autocomplete="current-password"></label>
+    <div class="row"><button class="pri" id="go">Log in</button></div><p class="msg" id="msg"></p></div>`;
+  const go = async () => {
+    try { await api("login", {method: "POST", body: {password: $("#pw").value}}); boot(); }
+    catch (e) { msg(e.message); }
+  };
+  $("#go").onclick = go;
+  $("#pw").onkeydown = e => e.key === "Enter" && go();
+  $("#pw").focus();
+}
+
+async function boot() {
+  try { await api("me"); items = await api("items"); } catch { return; }
+  show("review");
+}
+
+function show(t, item) { tab = t; cur = item || null; render(); }
+
+function render() {
+  const drafts = items.filter(i => i.status === "draft");
+  const tabs = [["review", `Review (${drafts.length})`], ["items", "All items"], ["schedule", "Schedule"]];
+  $("#v").innerHTML = `<nav>${tabs.map(([k, l]) => `<button class="${tab === k ? "on" : ""}" data-t="${k}">${l}</button>`).join("")}
+    <button id="out" style="margin-left:auto">Log out</button></nav><div id="body"></div>`;
+  document.querySelectorAll("[data-t]").forEach(b => b.onclick = () => show(b.dataset.t));
+  $("#out").onclick = async () => { await api("logout", {method: "POST"}); showLogin(); };
+  if (tab === "review") form(drafts[0], `${drafts.length} waiting for review`);
+  else if (tab === "items") cur ? form(cur, cur.id ? "Edit item" : "New item") : list();
+  else schedule();
+}
+
+function list() {
+  $("#body").innerHTML = `<div class="row" style="margin:0 0 12px"><button class="pri" id="new">+ New item</button></div>` +
+    items.map(i => `<div class="card item" data-id="${i.id}"><span>${esc(i.emoji)} ${esc(i.name)}</span>
+      <span class="tag">${AN[i.answer]} (${i.status})</span></div>`).join("");
+  $("#new").onclick = () => show("items", {});
+  document.querySelectorAll("[data-id]").forEach(c => c.onclick = () => show("items", items.find(i => i.id == c.dataset.id)));
+}
+
+function form(it, title) {
+  if (!it) { $("#body").innerHTML = `<div class="card">Nothing waiting for review.</div>`; return; }
+  const f = (k, l, ta) => `<label>${l}${ta ? `<textarea data-k="${k}">${esc(it[k])}</textarea>` : `<input data-k="${k}" value="${esc(it[k])}">`}</label>`;
+  $("#body").innerHTML = `<div class="card"><b>${esc(title)}</b>
+    ${f("name", "Name")}${f("description", "Description", 1)}${f("emoji", "Emoji (shown when there's no image)")}
+    <label>Answer<select data-k="answer">${Object.entries(AN).map(([k, v]) => `<option value="${k}" ${it.answer === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+    ${f("explanation", "Explanation (shown after the guess)", 1)}${f("image_url", "Image URL (or /images/file.jpg)")}${f("image_credit", "Image credit")}
+    <img class="pv" id="pv" alt="" ${it.image_url ? `src="${esc(it.image_url)}"` : "hidden"}>
+    <div class="row"><button class="pri" id="ap">Save &amp; approve</button><button id="dr">Save as draft</button>
+    ${it.id ? `<button class="bad" id="rm">Delete</button>` : ""}${tab === "items" ? `<button id="bk">Cancel</button>` : ""}</div>
+    <p class="msg" id="msg"></p></div>`;
+  $("[data-k=image_url]").oninput = e => { const p = $("#pv"); p.hidden = !e.target.value; p.src = e.target.value; };
+  const save = async status => {
+    const body = {status};
+    document.querySelectorAll("[data-k]").forEach(e => body[e.dataset.k] = e.value.trim());
+    if (!body.name || !body.description || !body.explanation) return msg("Name, description and explanation are required.");
+    try {
+      await (it.id ? api("items/" + it.id, {method: "PATCH", body}) : api("items", {method: "POST", body}));
+      items = await api("items"); show(tab);
+    } catch (e) { msg(e.message); }
+  };
+  $("#ap").onclick = () => save("approved");
+  $("#dr").onclick = () => save("draft");
+  if ($("#bk")) $("#bk").onclick = () => show("items");
+  if ($("#rm")) $("#rm").onclick = async () => {
+    if (!confirm(`Delete "${it.name}" permanently?`)) return;
+    try { await api("items/" + it.id, {method: "DELETE"}); items = await api("items"); show(tab); }
+    catch (e) { msg(e.message); }
+  };
+}
+
+async function schedule() {
+  let days;
+  try { days = await api("schedule"); } catch { return; }
+  const ok = items.filter(i => i.status === "approved");
+  if (!days.length) { $("#body").innerHTML = `<div class="card">Approve at least 5 items to generate a schedule.</div>`; return; }
+  const opts = id => (ok.some(i => i.id === id) ? ok : [...ok, items.find(i => i.id === id)])
+    .map(i => `<option value="${i.id}" ${i.id === id ? "selected" : ""}>${esc(i.name)}${i.status === "draft" ? " (draft)" : ""}</option>`).join("");
+  $("#body").innerHTML = days.map((d, n) => `<div class="card day" data-d="${d.date}" data-n="${n}">
+    <b>${d.date}${n === 0 ? " (today, live)" : ""}</b>
+    ${d.items.map(x => `<select>${opts(x.id)}</select>`).join("")}
+    <div class="row"><button class="pri" data-a="save">Save day</button><button data-a="roll">Re-roll</button></div><p class="msg"></p></div>`).join("");
+  document.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
+    const c = b.closest(".day"), m = c.querySelector(".msg");
+    if (c.dataset.n === "0" && !confirm("This is today's live puzzle. Changing it makes players' shared scores inconsistent. Continue?")) return;
+    try {
+      if (b.dataset.a === "roll") await api("schedule/" + c.dataset.d, {method: "DELETE"});
+      else {
+        const ids = [...c.querySelectorAll("select")].map(s => +s.value);
+        if (new Set(ids).size !== ids.length) { m.textContent = "Each round needs a different item."; return; }
+        await api("schedule/" + c.dataset.d, {method: "PUT", body: {item_ids: ids}});
+      }
+      schedule();
+    } catch (e) { m.textContent = e.message; }
+  });
+}
+boot().then(() => {}).catch(() => {});
+</script>
+</body>
+</html>
