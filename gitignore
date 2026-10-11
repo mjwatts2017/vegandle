@@ -1,0 +1,4 @@
+vegandle.db
+.venv/
+__pycache__/
+.env

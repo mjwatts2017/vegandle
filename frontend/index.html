@@ -48,10 +48,13 @@ ol{text-align:left;padding-left:20px;color:var(--mute);font-size:.9rem}
 <body>
 <main>
   <header><h1>Vegandle</h1><span class="meta" id="meta"></span></header>
-  <div id="app" aria-live="polite">Loading today's puzzle…</div>
+  <div id="app" aria-live="polite">Loading today's puzzle… (the first visit after a quiet spell can take up to a minute)</div>
   <p class="note">Answers are based on typical ingredient lists. Recipes vary by brand and country.</p>
 </main>
 <script>
+// After deploying: set this to your Render URL (no trailing slash). Local testing keeps using "".
+const PROD_API = "https://YOUR-SERVICE.onrender.com";
+const API = ["localhost", "127.0.0.1"].includes(location.hostname) ? "" : PROD_API;
 const $ = s => document.querySelector(s);
 const LABEL = {vegan: "Vegan", probably: "Probably Vegan", not: "Not Vegan"};
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -59,7 +62,7 @@ let P, S, KEY;
 
 async function init() {
   try {
-    const res = await fetch("/api/puzzle/today");
+    const res = await fetch(API + "/api/puzzle/today");
     if (!res.ok) throw new Error();
     P = await res.json();
   } catch {
@@ -101,7 +104,7 @@ async function guess(g, i) {
   document.querySelectorAll("[data-g]").forEach(b => { b.disabled = true; if (b.dataset.g === g) b.classList.add("picked"); });
   let r;
   try {
-    const res = await fetch(`/api/puzzle/${P.date}/check`, {
+    const res = await fetch(`${API}/api/puzzle/${P.date}/check`, {
       method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({round: i, guess: g})});
     if (!res.ok) throw new Error();

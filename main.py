@@ -8,6 +8,7 @@ from typing import Literal, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -92,6 +93,12 @@ def ensure_schedule(db: Session, days: int = 14) -> None:
 # ---------- app ----------
 app = FastAPI(title="Vegandle", redoc_url=None,
               docs_url=None if PROD else "/docs", openapi_url=None if PROD else "/openapi.json")
+
+# Game front end on another domain (Netlify) may call the PUBLIC game API only.
+# The admin page is served from this same server, so it needs no CORS.
+ORIGINS = [o.strip().rstrip("/") for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["GET", "POST"],
+                   allow_headers=["Content-Type"], allow_credentials=False)
 
 
 class Guess(BaseModel):
