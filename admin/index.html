@@ -53,6 +53,7 @@ async function api(path, opt = {}) {
 
 function showLogin() {
   $("#v").innerHTML = `<div class="card"><label>Admin password<input id="pw" type="password" autocomplete="current-password"></label>
+    <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sh" style="width:auto;margin:0"> Show password</label>
     <div class="row"><button class="pri" id="go">Log in</button></div><p class="msg" id="msg"></p></div>`;
   const go = async () => {
     try { await api("login", {method: "POST", body: {password: $("#pw").value}}); boot(); }
@@ -60,6 +61,7 @@ function showLogin() {
   };
   $("#go").onclick = go;
   $("#pw").onkeydown = e => e.key === "Enter" && go();
+  $("#sh").onchange = e => { $("#pw").type = e.target.checked ? "text" : "password"; };
   $("#pw").focus();
 }
 
