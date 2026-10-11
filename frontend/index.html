@@ -53,7 +53,7 @@ ol{text-align:left;padding-left:20px;color:var(--mute);font-size:.9rem}
 </main>
 <script>
 // After deploying: set this to your Render URL (no trailing slash). Local testing keeps using "".
-const PROD_API = "https://vegandle.onrender.com/";
+const PROD_API = "https://vegandle.onrender.com";
 // Same-origin (relative) calls when served by this machine or by Render itself; PROD_API only matters on Netlify.
 const SAME_ORIGIN = ["localhost", "127.0.0.1"].includes(location.hostname) || location.hostname.endsWith(".onrender.com");
 const API = SAME_ORIGIN ? "" : PROD_API;
