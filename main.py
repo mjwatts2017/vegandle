@@ -20,6 +20,7 @@ DB_URL = os.getenv("DATABASE_URL", "sqlite:///vegandle.db").replace("postgres://
 TZ = ZoneInfo(os.getenv("GAME_TZ", "America/New_York"))  # one "midnight" for everyone
 LAUNCH = date.fromisoformat(os.getenv("LAUNCH_DATE", "2026-10-06"))  # puzzle #1
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "change-me")
+print(f"startup check: prod={PROD} password_length={len(ADMIN_PASSWORD)}", flush=True)
 PROD = os.getenv("APP_ENV", "dev") == "production"  # set APP_ENV=production when deployed
 ADMIN_PATH = "/" + os.getenv("ADMIN_PATH", "/admin").strip("/")  # change it to hide it further
 SESSION_HOURS, MAX_FAILS, LOCKOUT_SECONDS = 12, 5, 15 * 60
