@@ -16,7 +16,7 @@ from sqlalchemy import Text, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 # ---------- config (all overridable with environment variables) ----------
-DB_URL = os.getenv("DATABASE_URL", "sqlite:///vegandle.db").replace("postgres://", "postgresql://", 1)
+DB_URL = os.getenv("DATABASE_URL", "sqlite:///vegandle.db").replace("postgres://", "postgresql://", 1).replace("postgresql://", "postgresql+psycopg2://", 1)
 TZ = ZoneInfo(os.getenv("GAME_TZ", "America/New_York"))  # one "midnight" for everyone
 LAUNCH = date.fromisoformat(os.getenv("LAUNCH_DATE", "2026-10-06"))  # puzzle #1
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "change-me")
