@@ -60,7 +60,7 @@ function showLogin() {
     catch (e) { msg(e.message); }
   };
   $("#go").onclick = go;
-  $("#pw").onkeydown = e => e.key === "Enter" && go();
+  $("#pw").onkeydown = e => { if (e.key === "Enter") go(); };
   $("#sh").onchange = e => { $("#pw").type = e.target.checked ? "text" : "password"; };
   $("#pw").focus();
 }
