@@ -37,7 +37,7 @@ img.pv{max-height:120px;border-radius:8px;margin-top:8px}
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const AN = {vegan: "Vegan", probably: "Probably vegan", not: "Not vegan"};
+const AN = {vegan: "Vegan", not: "Not vegan"};
 let items = [], tab = "review", cur = null;
 const msg = t => { const m = $("#msg"); if (m) m.textContent = t || ""; };
 
@@ -98,14 +98,15 @@ function form(it, title) {
   $("#body").innerHTML = `<div class="card"><b>${esc(title)}</b>
     ${f("name", "Name")}${f("description", "Description", 1)}${f("emoji", "Emoji (shown when there's no image)")}
     <label>Answer<select data-k="answer">${Object.entries(AN).map(([k, v]) => `<option value="${k}" ${it.answer === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-    ${f("explanation", "Explanation (shown after the guess)", 1)}${f("image_url", "Image URL (or /images/file.jpg)")}${f("image_credit", "Image credit")}
+    <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gray" style="width:auto;margin:0" ${it.gray_area ? "checked" : ""}> Gray area (flag it after the guess, e.g. bone-char sugar)</label>
+    ${f("explanation", "More info (shown after the guess)", 1)}${f("image_url", "Image URL (or /images/file.jpg)")}${f("image_credit", "Image credit")}
     <img class="pv" id="pv" alt="" ${it.image_url ? `src="${esc(it.image_url)}"` : "hidden"}>
     <div class="row"><button class="pri" id="ap">Save &amp; approve</button><button id="dr">Save as draft</button>
     ${it.id ? `<button class="bad" id="rm">Delete</button>` : ""}${tab === "items" ? `<button id="bk">Cancel</button>` : ""}</div>
     <p class="msg" id="msg"></p></div>`;
   $("[data-k=image_url]").oninput = e => { const p = $("#pv"); p.hidden = !e.target.value; p.src = e.target.value; };
   const save = async status => {
-    const body = {status};
+    const body = {status, gray_area: $("#gray").checked};
     document.querySelectorAll("[data-k]").forEach(e => body[e.dataset.k] = e.value.trim());
     if (!body.name || !body.description || !body.explanation) return msg("Name, description and explanation are required.");
     try {
