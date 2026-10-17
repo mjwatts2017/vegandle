@@ -1,5 +1,6 @@
 import os
 import random
+import hashlib
 import hmac
 import secrets
 import time
@@ -12,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import Text, create_engine, select
+from sqlalchemy import Text, create_engine, func, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 # ---------- config (all overridable with environment variables) ----------
@@ -28,7 +29,7 @@ print(f"startup check: prod={PROD} password_set={'ADMIN_PASSWORD' in os.environ}
 if PROD and ADMIN_PASSWORD == "change-me":
     raise RuntimeError("Set ADMIN_PASSWORD before running in production")
 ROUNDS = 5
-Answer = Literal["vegan", "probably", "not"]
+Answer = Literal["vegan", "not"]  # "probably vegan" now counts as vegan + gray_area
 
 
 # ---------- database ----------
@@ -47,12 +48,19 @@ class Item(Base):
     answer: Mapped[str]  # vegan | probably | not
     explanation: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(default="draft")  # draft | approved
+    gray_area: Mapped[bool] = mapped_column(default=False)  # show a "gray area" note after answering
 
 
 class Day(Base):
     __tablename__ = "days"
     date: Mapped[str] = mapped_column(primary_key=True)  # YYYY-MM-DD
     item_ids: Mapped[str]  # "3,9,1,4,7" (order = round order)
+
+
+class Player(Base):  # anonymous: just a random id the browser made up, used only to count players
+    __tablename__ = "players"
+    id: Mapped[str] = mapped_column(primary_key=True)
+    first_seen: Mapped[str]
 
 
 engine = create_engine(DB_URL, pool_pre_ping=True)
@@ -106,6 +114,7 @@ app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["GET", 
 class Guess(BaseModel):
     round: int
     guess: Answer
+    player: Optional[str] = None
 
 
 @app.get("/api/puzzle/today")
@@ -137,7 +146,21 @@ def check(day: str, body: Guess, db: Session = Depends(get_db)):
     if not 0 <= body.round < len(ids):
         raise HTTPException(400, "Bad round")
     item = db.get(Item, int(ids[body.round]))
-    return {"correct": body.guess == item.answer, "answer": item.answer, "explanation": item.explanation}
+    answer = "vegan" if item.answer == "probably" else item.answer
+    pid = (body.player or "")[:64]
+    if len(pid) >= 16 and pid.replace("-", "").isalnum() and not db.get(Player, pid):
+        try:
+            db.add(Player(id=pid, first_seen=today().isoformat()))
+            db.commit()
+        except Exception:
+            db.rollback()
+    return {"correct": body.guess == answer, "answer": answer, "explanation": item.explanation,
+            "gray_area": bool(item.gray_area) or item.answer == "probably"}
+
+
+@app.get("/api/stats")
+def stats(db: Session = Depends(get_db)):
+    return {"players": db.scalar(select(func.count()).select_from(Player)) or 0}
 
 
 # ---------- admin (send the password in an X-Admin-Password header) ----------
@@ -146,6 +169,10 @@ FAILS: dict[str, list[float]] = {}  # ip -> recent failed login times (in memory
 
 def same(a: str, b: str) -> bool:
     return secrets.compare_digest(a.encode(), b.encode())
+
+
+def h(x: str) -> str:  # short fingerprint for debugging only; remove once login works
+    return hashlib.sha256(x.encode()).hexdigest()[:6]
 
 
 def sign(exp: str) -> str:
@@ -180,6 +207,8 @@ def login(body: Login, request: Request, response: Response):
         raise HTTPException(429, "Too many attempts. Try again in 15 minutes.")
     if not same(body.password.strip(), ADMIN_PASSWORD):
         FAILS[ip] = recent + [now]
+        print(f"login failed: received_len={len(body.password.strip())} received_hash={h(body.password.strip())} "
+              f"server_hash={h(ADMIN_PASSWORD)}", flush=True)
         raise HTTPException(401, "Wrong password")
     FAILS.pop(ip, None)
     exp = str(int(now) + SESSION_HOURS * 3600)
@@ -222,6 +251,7 @@ class ItemIn(BaseModel):
     image_url: str = ""
     image_credit: str = ""
     status: Literal["draft", "approved"] = "draft"
+    gray_area: bool = False
 
 
 class ItemPatch(BaseModel):
@@ -233,6 +263,7 @@ class ItemPatch(BaseModel):
     image_url: Optional[str] = None
     image_credit: Optional[str] = None
     status: Optional[Literal["draft", "approved"]] = None
+    gray_area: Optional[bool] = None
 
 
 class DayIn(BaseModel):

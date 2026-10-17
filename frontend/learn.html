@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn about eating vegan | Vegandle</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&display=swap">
+<style>
+:root{--bg:#eef3ec;--ink:#14231a;--mute:#5b6b60;--card:#fff;--line:#d3ddd3;
+--vegan:#2f7d4f;--probably:#b98a10;--not:#c24a3d;}
+@media (prefers-color-scheme:dark){:root{--bg:#101a14;--ink:#e8f0e9;--mute:#9bb0a1;--card:#18261e;--line:#2a3d31;
+--vegan:#5fbf84;--probably:#e0b23c;--not:#e8786b;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;
+line-height:1.45;min-height:100vh;display:flex;justify-content:center}
+main{width:100%;max-width:480px;padding:20px 18px 40px}
+header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}
+h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:-.03em}
+.meta{color:var(--mute);font-size:.9rem}
+.dots{display:flex;gap:6px;margin-bottom:16px}
+.dots i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.dots i.ok{background:var(--vegan)}.dots i.bad{background:var(--not)}.dots i.now{background:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;text-align:center}
+.pic{height:170px;display:flex;align-items:center;justify-content:center;font-size:104px;margin-bottom:8px}
+.pic img{max-height:100%;max-width:100%;border-radius:12px;object-fit:contain}
+h2{margin:0 0 6px;font-size:1.5rem;letter-spacing:-.02em}
+.desc{margin:0;color:var(--mute)}
+.credit{font-size:.7rem;color:var(--mute);margin-top:6px}
+.btns{display:grid;gap:10px;margin-top:16px}
+button{font:inherit;font-weight:700;font-size:1.05rem;padding:14px;border-radius:14px;cursor:pointer;
+border:2px solid var(--c,var(--ink));background:transparent;color:var(--c,var(--ink))}
+button:hover:not(:disabled){background:var(--c,var(--ink));color:var(--bg)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+button:disabled{cursor:default;opacity:.45}
+button.picked{opacity:1}
+.b-vegan{--c:var(--vegan)}.b-probably{--c:var(--probably)}.b-not{--c:var(--not)}
+.fb{margin-top:16px;text-align:left;padding:14px;border-radius:14px;border-left:6px solid var(--c)}
+.fb.good{--c:var(--vegan)}.fb.miss{--c:var(--not)}
+.fb{background:color-mix(in srgb,var(--c) 12%,transparent)}
+.fb b{display:block;margin-bottom:2px}
+.next{width:100%;margin-top:12px;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.score{font-size:4rem;font-weight:800;letter-spacing:-.04em;margin:0}
+.grid{font-size:2rem;letter-spacing:.15em;margin:6px 0 14px}
+ol{text-align:left;padding-left:20px;color:var(--mute);font-size:.9rem}
+.note{color:var(--mute);font-size:.85rem;margin-top:14px;text-align:center}
+.rv{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--vegan);border-radius:12px;padding:12px;margin:10px 0;text-align:left}.rv.miss{border-left-color:var(--not)}h3{margin:18px 0 0}a{color:inherit}.btn{display:block;padding:14px;border-radius:14px;font-weight:700;text-align:center;text-decoration:none;background:var(--ink);color:var(--bg);margin-top:12px}.soon{opacity:.55;border:1px dashed var(--line);border-radius:14px;padding:12px;margin-top:10px}</style></head>
+<body><main>
+<header><h1><a href="index.html" style="text-decoration:none">Vegandle</a></h1></header>
+<div class="card" style="text-align:left">
+  <h2>Eating vegan: a quick start</h2>
+  <p class="desc">DRAFT. Vegan food avoids all animal products, including meat, fish, dairy, eggs and honey. The tricky part is that animal ingredients can hide in unexpected places.</p>
+  <h3>Common hidden ingredients</h3>
+  <p class="desc">Gelatin (candy, marshmallows), carmine (red dye from insects), shellac (candy glaze), casein and whey (milk proteins), isinglass (fish bladder, used to clarify some beer and wine), anchovies (Worcestershire and Caesar dressing), lanolin-derived vitamin D3, and L-cysteine in some bread dough.</p>
+  <h3>The gray areas</h3>
+  <p class="desc">Some foods contain no animal ingredients but may involve animal products in processing, like sugar filtered through bone char or wine fined with egg whites. Vegandle marks these as vegan with a gray-area note. Where you draw your own line is up to you.</p>
+  <h3>Tips for getting started</h3>
+  <p class="desc">Read ingredient lists and "contains" statements, look for vegan labels, and start by swapping one meal at a time. For nutrition questions, ask a doctor or registered dietitian.</p>
+  <h3>Helpful links</h3>
+  <p class="desc"><a href="https://www.vegansociety.com" target="_blank" rel="noopener">The Vegan Society</a><br>
+  <a href="https://www.veganuary.com" target="_blank" rel="noopener">Veganuary</a><br>
+  <a href="https://www.barnivore.com" target="_blank" rel="noopener">Barnivore: vegan beer, wine and liquor guide</a><br>
+  <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts: look up any packaged product</a></p>
+</div>
+<a class="btn" href="index.html">Home</a>
+</main>
+<script src="config.js"></script>
+<script></script>
+</body></html>

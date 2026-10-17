@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vegandle: is it vegan?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&display=swap">
+<style>
+:root{--bg:#eef3ec;--ink:#14231a;--mute:#5b6b60;--card:#fff;--line:#d3ddd3;
+--vegan:#2f7d4f;--probably:#b98a10;--not:#c24a3d;}
+@media (prefers-color-scheme:dark){:root{--bg:#101a14;--ink:#e8f0e9;--mute:#9bb0a1;--card:#18261e;--line:#2a3d31;
+--vegan:#5fbf84;--probably:#e0b23c;--not:#e8786b;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;
+line-height:1.45;min-height:100vh;display:flex;justify-content:center}
+main{width:100%;max-width:480px;padding:20px 18px 40px}
+header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}
+h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:-.03em}
+.meta{color:var(--mute);font-size:.9rem}
+.dots{display:flex;gap:6px;margin-bottom:16px}
+.dots i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.dots i.ok{background:var(--vegan)}.dots i.bad{background:var(--not)}.dots i.now{background:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;text-align:center}
+.pic{height:170px;display:flex;align-items:center;justify-content:center;font-size:104px;margin-bottom:8px}
+.pic img{max-height:100%;max-width:100%;border-radius:12px;object-fit:contain}
+h2{margin:0 0 6px;font-size:1.5rem;letter-spacing:-.02em}
+.desc{margin:0;color:var(--mute)}
+.credit{font-size:.7rem;color:var(--mute);margin-top:6px}
+.btns{display:grid;gap:10px;margin-top:16px}
+button{font:inherit;font-weight:700;font-size:1.05rem;padding:14px;border-radius:14px;cursor:pointer;
+border:2px solid var(--c,var(--ink));background:transparent;color:var(--c,var(--ink))}
+button:hover:not(:disabled){background:var(--c,var(--ink));color:var(--bg)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+button:disabled{cursor:default;opacity:.45}
+button.picked{opacity:1}
+.b-vegan{--c:var(--vegan)}.b-probably{--c:var(--probably)}.b-not{--c:var(--not)}
+.fb{margin-top:16px;text-align:left;padding:14px;border-radius:14px;border-left:6px solid var(--c)}
+.fb.good{--c:var(--vegan)}.fb.miss{--c:var(--not)}
+.fb{background:color-mix(in srgb,var(--c) 12%,transparent)}
+.fb b{display:block;margin-bottom:2px}
+.next{width:100%;margin-top:12px;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.score{font-size:4rem;font-weight:800;letter-spacing:-.04em;margin:0}
+.grid{font-size:2rem;letter-spacing:.15em;margin:6px 0 14px}
+ol{text-align:left;padding-left:20px;color:var(--mute);font-size:.9rem}
+.note{color:var(--mute);font-size:.85rem;margin-top:14px;text-align:center}
+.rv{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--vegan);border-radius:12px;padding:12px;margin:10px 0;text-align:left}.rv.miss{border-left-color:var(--not)}h3{margin:18px 0 0}a{color:inherit}.btn{display:block;padding:14px;border-radius:14px;font-weight:700;text-align:center;text-decoration:none;background:var(--ink);color:var(--bg);margin-top:12px}.soon{opacity:.55;border:1px dashed var(--line);border-radius:14px;padding:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+  <header><h1><a href="index.html" style="text-decoration:none">Vegandle</a></h1><span class="meta" id="meta"></span></header>
+  <div id="app" aria-live="polite">Loading today's puzzle… (the first visit after a quiet spell can take up to a minute)</div>
+  <p class="note">Answers are based on typical ingredient lists. Recipes vary by brand and country.</p>
+</main>
+<script src="config.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const LABEL = {vegan: "Vegan", not: "Not Vegan"};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let P, S, KEY;
+
+async function init() {
+  try {
+    const res = await fetch(API + "/api/puzzle/today");
+    if (!res.ok) throw new Error();
+    P = await res.json();
+  } catch {
+    $("#app").textContent = "Couldn't load today's puzzle. Refresh in a moment.";
+    return;
+  }
+  KEY = "vegandle:v2:" + P.date;  // v2: ignores results saved by the 3-answer version
+  try { S = JSON.parse(localStorage.getItem(KEY)) || {results: []}; } catch { S = {results: []}; }
+  $("#meta").textContent = "#" + P.number;
+  S.results.length >= P.items.length ? showEnd() : showRound();
+}
+
+function dots(current) {
+  return '<div class="dots">' + P.items.map((_, i) => {
+    const r = S.results[i];
+    return `<i class="${r ? (r.correct ? "ok" : "bad") : i === current ? "now" : ""}"></i>`;
+  }).join("") + "</div>";
+}
+
+function showRound() {
+  const i = S.results.length, it = P.items[i];
+  const pic = it.image_url
+    ? `<img src="${esc(it.image_url)}" alt="${esc(it.name)}">`
+    : `<span role="img" aria-label="${esc(it.name)}">${esc(it.emoji)}</span>`;
+  $("#app").innerHTML = dots(i) + `
+    <div class="card">
+      <div class="pic">${pic}</div>
+      <h2>${esc(it.name)}</h2>
+      <p class="desc">${esc(it.description)}</p>
+      ${it.image_credit ? `<div class="credit">${esc(it.image_credit)}</div>` : ""}
+      <div class="btns">${Object.entries(LABEL).map(([k, v]) =>
+        `<button class="b-${k}" data-g="${k}">${v}</button>`).join("")}</div>
+      <div id="fb"></div>
+    </div>`;
+  document.querySelectorAll("[data-g]").forEach(b => b.onclick = () => guess(b.dataset.g, i));
+}
+
+async function guess(g, i) {
+  document.querySelectorAll("[data-g]").forEach(b => { b.disabled = true; if (b.dataset.g === g) b.classList.add("picked"); });
+  let r;
+  try {
+    const res = await fetch(`${API}/api/puzzle/${P.date}/check`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({round: i, guess: g, player: playerId()})});
+    if (!res.ok) throw new Error();
+    r = await res.json();
+  } catch {
+    $("#fb").textContent = "Something went wrong. Refresh and try again.";
+    return;
+  }
+  S.results.push({guess: g, correct: r.correct, answer: r.answer, explanation: r.explanation, gray: r.gray_area,
+    name: P.items[i].name, emoji: P.items[i].emoji});
+  localStorage.setItem(KEY, JSON.stringify(S));  // saved: no replays, survives refresh
+  const last = S.results.length >= P.items.length;
+  $("#fb").innerHTML = `
+    <div class="fb ${r.correct ? "good" : "miss"}">
+      <b>${r.correct ? "Correct!" : "Not quite."} It's ${LABEL[r.answer]}.</b>${r.gray_area ? "<em>Gray area. </em>" : ""}${esc(r.explanation)}
+    </div>
+    <button class="next" id="next">${last ? "See my score" : "Next"}</button>`;
+  $("#next").focus();
+  $("#next").onclick = () => last ? showEnd() : showRound();
+}
+
+function showEnd() {
+  const n = P.items.length, score = S.results.filter(r => r.correct).length;
+  const grid = S.results.map(r => r.correct ? "🌱" : "❌").join("");
+  const text = `Vegandle Beta #${P.number} ${score}/${n}\n${grid}\nvegandle.app`;
+  const review = S.results.map((r, i) => `<div class="rv ${r.correct ? "good" : "miss"}">
+    <b>${i + 1}. ${esc(r.emoji || "")} ${esc(r.name)}</b>
+    <div>You said ${LABEL[r.guess] || "?"}. Answer: <b>${LABEL[r.answer]}</b>${r.gray ? " (gray area)" : ""}</div>
+    <div class="desc">${esc(r.explanation)}</div></div>`).join("");
+  $("#app").innerHTML = dots(-1) + `
+    <div class="card">
+      <p class="score">${score}/${n}</p>
+      <div class="grid">${grid}</div>
+      <div class="btns"><button class="next" id="share">Share my score</button></div>
+      <p class="desc" id="pc" style="margin-top:14px"></p>
+      <p class="desc">Come back tomorrow for a new puzzle.</p>
+    </div>
+    <h3>Review</h3>${review}
+    <a class="btn" href="index.html">Home</a>`;
+  playerCount().then(c => { if (c != null) $("#pc").textContent = c + " players so far"; });
+  $("#share").onclick = async () => {
+    try {
+      if (navigator.share) await navigator.share({text});
+      else { await navigator.clipboard.writeText(text); $("#share").textContent = "Copied!"; }
+    } catch {}
+  };
+}
+init();
+</script>
+</body>
+</html>

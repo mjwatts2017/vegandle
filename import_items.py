@@ -28,7 +28,8 @@ with SessionLocal() as db:
             continue
         db.add(Item(name=r["name"], description=r["description"], emoji=r.get("emoji", "🍽️"),
                     image_url=r.get("image_url", ""), image_credit=r.get("image_credit", ""),
-                    answer=r["answer"], explanation=r["explanation"], status=status))
+                    answer="vegan" if r["answer"] == "probably" else r["answer"], explanation=r["explanation"],
+                    gray_area=r["answer"] == "probably" or bool(r.get("gray_area")), status=status))
         have.add(r["name"].lower())
         added += 1
     db.commit()

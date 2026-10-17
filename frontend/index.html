@@ -1,8 +1,5 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vegandle: is it vegan?</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&display=swap">
 <style>
@@ -43,109 +40,34 @@ button.picked{opacity:1}
 .grid{font-size:2rem;letter-spacing:.15em;margin:6px 0 14px}
 ol{text-align:left;padding-left:20px;color:var(--mute);font-size:.9rem}
 .note{color:var(--mute);font-size:.85rem;margin-top:14px;text-align:center}
-</style>
-</head>
-<body>
-<main>
-  <header><h1>Vegandle</h1><span class="meta" id="meta"></span></header>
-  <div id="app" aria-live="polite">Loading today's puzzle… (the first visit after a quiet spell can take up to a minute)</div>
-  <p class="note">Answers are based on typical ingredient lists. Recipes vary by brand and country.</p>
+.rv{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--vegan);border-radius:12px;padding:12px;margin:10px 0;text-align:left}.rv.miss{border-left-color:var(--not)}h3{margin:18px 0 0}a{color:inherit}.btn{display:block;padding:14px;border-radius:14px;font-weight:700;text-align:center;text-decoration:none;background:var(--ink);color:var(--bg);margin-top:12px}.soon{opacity:.55;border:1px dashed var(--line);border-radius:14px;padding:12px;margin-top:10px}</style></head>
+<body><main>
+<header><h1>Vegandle</h1><span class="meta" id="num"></span></header>
+<div class="card" style="text-align:left">
+  <p style="margin-top:0"><b>Five foods. One question each: is it vegan?</b></p>
+  <p id="st" style="font-weight:700"></p>
+  <a class="btn" id="go" href="play.html">Start Daily Game</a>
+  <p class="desc" id="pc" style="text-align:center;margin-bottom:0"></p>
+</div>
+<div class="soon"><b>Unlimited Play</b><div class="desc">Coming soon</div></div>
+<div class="soon"><b>Streaks</b><div class="desc">Coming soon</div></div>
+<a class="btn" href="learn.html" style="background:transparent;color:var(--ink);border:2px solid var(--ink)">Learn about eating vegan</a>
+<p class="note">We count players anonymously with a random ID stored in your browser. No accounts, no personal data.</p>
 </main>
-<script>
-// After deploying: set this to your Render URL (no trailing slash). Local testing keeps using "".
-const PROD_API = "https://vegandle.onrender.com";
-// Same-origin (relative) calls when served by this machine or by Render itself; PROD_API only matters on Netlify.
-const SAME_ORIGIN = ["localhost", "127.0.0.1"].includes(location.hostname) || location.hostname.endsWith(".onrender.com");
-const API = SAME_ORIGIN ? "" : PROD_API;
-const $ = s => document.querySelector(s);
-const LABEL = {vegan: "Vegan", probably: "Probably Vegan", not: "Not Vegan"};
-const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let P, S, KEY;
-
-async function init() {
+<script src="config.js"></script>
+<script>(async () => {
+  playerCount().then(c => { if (c != null) document.querySelector("#pc").textContent = c + " players so far"; });
   try {
     const res = await fetch(API + "/api/puzzle/today");
-    if (!res.ok) throw new Error();
-    P = await res.json();
-  } catch {
-    $("#app").textContent = "Couldn't load today's puzzle. Refresh in a moment.";
-    return;
-  }
-  KEY = "vegandle:" + P.date;
-  try { S = JSON.parse(localStorage.getItem(KEY)) || {results: []}; } catch { S = {results: []}; }
-  $("#meta").textContent = "#" + P.number;
-  S.results.length >= P.items.length ? showEnd() : showRound();
-}
-
-function dots(current) {
-  return '<div class="dots">' + P.items.map((_, i) => {
-    const r = S.results[i];
-    return `<i class="${r ? (r.correct ? "ok" : "bad") : i === current ? "now" : ""}"></i>`;
-  }).join("") + "</div>";
-}
-
-function showRound() {
-  const i = S.results.length, it = P.items[i];
-  const pic = it.image_url
-    ? `<img src="${esc(it.image_url)}" alt="${esc(it.name)}">`
-    : `<span role="img" aria-label="${esc(it.name)}">${esc(it.emoji)}</span>`;
-  $("#app").innerHTML = dots(i) + `
-    <div class="card">
-      <div class="pic">${pic}</div>
-      <h2>${esc(it.name)}</h2>
-      <p class="desc">${esc(it.description)}</p>
-      ${it.image_credit ? `<div class="credit">${esc(it.image_credit)}</div>` : ""}
-      <div class="btns">${Object.entries(LABEL).map(([k, v]) =>
-        `<button class="b-${k}" data-g="${k}">${v}</button>`).join("")}</div>
-      <div id="fb"></div>
-    </div>`;
-  document.querySelectorAll("[data-g]").forEach(b => b.onclick = () => guess(b.dataset.g, i));
-}
-
-async function guess(g, i) {
-  document.querySelectorAll("[data-g]").forEach(b => { b.disabled = true; if (b.dataset.g === g) b.classList.add("picked"); });
-  let r;
-  try {
-    const res = await fetch(`${API}/api/puzzle/${P.date}/check`, {
-      method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({round: i, guess: g})});
-    if (!res.ok) throw new Error();
-    r = await res.json();
-  } catch {
-    $("#fb").textContent = "Something went wrong. Refresh and try again.";
-    return;
-  }
-  S.results.push({guess: g, correct: r.correct});
-  localStorage.setItem(KEY, JSON.stringify(S));  // saved: no replays, survives refresh
-  const last = S.results.length >= P.items.length;
-  $("#fb").innerHTML = `
-    <div class="fb ${r.correct ? "good" : "miss"}">
-      <b>${r.correct ? "Correct!" : "Not quite."} It's ${LABEL[r.answer]}.</b>${esc(r.explanation)}
-    </div>
-    <button class="next" id="next">${last ? "See my score" : "Next"}</button>`;
-  $("#next").focus();
-  $("#next").onclick = () => last ? showEnd() : showRound();
-}
-
-function showEnd() {
-  const score = S.results.filter(r => r.correct).length, n = P.items.length;
-  const grid = S.results.map(r => r.correct ? "🟩" : "🟥").join("");
-  const text = `Vegandle #${P.number} ${score}/${n}\n${grid}\n${location.origin}`;
-  $("#app").innerHTML = dots(-1) + `
-    <div class="card">
-      <p class="score">${score}/${n}</p>
-      <div class="grid">${grid}</div>
-      <div class="btns"><button class="next" id="share">Share my score</button></div>
-      <p class="desc" style="margin-top:14px">Come back tomorrow for a new puzzle.</p>
-    </div>`;
-  $("#share").onclick = async () => {
-    try {
-      if (navigator.share) await navigator.share({text});
-      else { await navigator.clipboard.writeText(text); $("#share").textContent = "Copied!"; }
-    } catch {}
-  };
-}
-init();
-</script>
-</body>
-</html>
+    if (!res.ok) return;
+    const P = await res.json();
+    document.querySelector("#num").textContent = "Puzzle #" + P.number;
+    const S = JSON.parse(localStorage.getItem("vegandle:v2:" + P.date) || "null");
+    if (S && S.results && S.results.length >= P.items.length) {
+      const score = S.results.filter(r => r.correct).length;
+      document.querySelector("#st").textContent = `Today: ${score}/${P.items.length} ` + S.results.map(r => r.correct ? "🌱" : "❌").join("");
+      document.querySelector("#go").textContent = "See today's results";
+    }
+  } catch {}
+})();</script>
+</body></html>
