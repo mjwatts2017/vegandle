@@ -128,7 +128,7 @@ async function guess(g, i) {
 function showEnd() {
   const n = P.items.length, score = S.results.filter(r => r.correct).length;
   const grid = S.results.map(r => r.correct ? "🌱" : "❌").join("");
-  const text = `Vegandle Beta #${P.number} ${score}/${n}\n${grid}\nvegandle.app`;
+  const text = `Vegandle Beta #${P.number} ${score}/${n}\n${grid}\nhttps://vegandle.app`;
   const review = S.results.map((r, i) => `<div class="rv ${r.correct ? "good" : "miss"}">
     <b>${i + 1}. ${esc(r.emoji || "")} ${esc(r.name)}</b>
     <div>You said ${LABEL[r.guess] || "?"}. Answer: <b>${LABEL[r.answer]}</b>${r.gray ? " (gray area)" : ""}</div>
@@ -144,11 +144,16 @@ function showEnd() {
     <h3>Review</h3>${review}
     <a class="btn" href="index.html">Home</a>`;
   playerCount().then(c => { if (c != null) $("#pc").textContent = c + " players so far"; });
+  // Phones get the share sheet; desktops (Windows, Mac) simply copy the text.
+  const phone = matchMedia("(pointer: coarse)").matches && !!navigator.share;
+  $("#share").textContent = phone ? "Share my score" : "Copy my score";
   $("#share").onclick = async () => {
     try {
-      if (navigator.share) await navigator.share({text});
+      if (phone) await navigator.share({text});
       else { await navigator.clipboard.writeText(text); $("#share").textContent = "Copied!"; }
-    } catch {}
+    } catch (e) {
+      if (e.name !== "AbortError") prompt("Copy your result:", text);
+    }
   };
 }
 init();

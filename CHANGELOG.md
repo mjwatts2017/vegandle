@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1-beta
+- Share text uses a full https link so it becomes clickable
+- Desktop copies to the clipboard instead of opening the share dialog
+
 ## 0.2.0-beta
 - Answer review list after the 5 rounds
 - Yes/No answers only; "probably vegan" is now vegan with an optional gray-area note
