@@ -143,7 +143,7 @@ function showEnd() {
     </div>
     <h3>Review</h3>${review}
     <a class="btn" href="index.html">Home</a>`;
-  playerCount().then(c => { if (c != null) $("#pc").textContent = c + " players so far"; });
+  fetch(API + "/api/stats").then(r => r.json()).then(d => { const n = d.today; $("#pc").textContent = (n === 0 ? "Be the first to play today!" : `${n} ${n === 1 ? "player" : "players"} played today`); }).catch(() => {});
   // Phones get the share sheet; desktops (Windows, Mac) simply copy the text.
   const phone = matchMedia("(pointer: coarse)").matches && !!navigator.share;
   $("#share").textContent = phone ? "Share my score" : "Copy my score";

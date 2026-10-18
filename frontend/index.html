@@ -45,6 +45,7 @@ ol{text-align:left;padding-left:20px;color:var(--mute);font-size:.9rem}
 <header><h1>Vegandle</h1><span class="meta" id="num"></span></header>
 <div class="card" style="text-align:left">
   <p style="margin-top:0"><b>Five foods. One question each: is it vegan?</b></p>
+  <p class="desc">Vegandle is a daily game about spotting the animal ingredients hiding in everyday food, like gelatin in candy, fish in sauces, or bone-char-filtered sugar. After every guess you learn why, so you get a bit better at reading labels.</p>
   <p id="st" style="font-weight:700"></p>
   <a class="btn" id="go" href="play.html">Start Daily Game</a>
   <p class="desc" id="pc" style="text-align:center;margin-bottom:0"></p>
@@ -56,7 +57,7 @@ ol{text-align:left;padding-left:20px;color:var(--mute);font-size:.9rem}
 </main>
 <script src="config.js"></script>
 <script>(async () => {
-  playerCount().then(c => { if (c != null) document.querySelector("#pc").textContent = c + " players so far"; });
+  fetch(API + "/api/stats").then(r => r.json()).then(d => { const n = d.today; document.querySelector("#pc").textContent = (n === 0 ? "Be the first to play today!" : `${n} ${n === 1 ? "player" : "players"} played today`); }).catch(() => {});
   try {
     const res = await fetch(API + "/api/puzzle/today");
     if (!res.ok) return;
