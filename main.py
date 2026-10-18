@@ -63,6 +63,12 @@ class Player(Base):  # anonymous: just a random id the browser made up, used onl
     first_seen: Mapped[str]
 
 
+class Play(Base):  # one row per player per day, so "played today" resets at midnight (GAME_TZ)
+    __tablename__ = "plays"
+    day: Mapped[str] = mapped_column(primary_key=True)
+    player_id: Mapped[str] = mapped_column(primary_key=True)
+
+
 engine = create_engine(DB_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
 Base.metadata.create_all(engine)
@@ -148,9 +154,13 @@ def check(day: str, body: Guess, db: Session = Depends(get_db)):
     item = db.get(Item, int(ids[body.round]))
     answer = "vegan" if item.answer == "probably" else item.answer
     pid = (body.player or "")[:64]
-    if len(pid) >= 16 and pid.replace("-", "").isalnum() and not db.get(Player, pid):
+    if len(pid) >= 16 and pid.replace("-", "").isalnum():
+        day_key = today().isoformat()
         try:
-            db.add(Player(id=pid, first_seen=today().isoformat()))
+            if not db.get(Player, pid):
+                db.add(Player(id=pid, first_seen=day_key))
+            if not db.get(Play, (day_key, pid)):
+                db.add(Play(day=day_key, player_id=pid))
             db.commit()
         except Exception:
             db.rollback()
@@ -160,7 +170,9 @@ def check(day: str, body: Guess, db: Session = Depends(get_db)):
 
 @app.get("/api/stats")
 def stats(db: Session = Depends(get_db)):
-    return {"players": db.scalar(select(func.count()).select_from(Player)) or 0}
+    total = db.scalar(select(func.count()).select_from(Player)) or 0
+    today_n = db.scalar(select(func.count()).select_from(Play).where(Play.day == today().isoformat())) or 0
+    return {"players": total, "today": today_n}
 
 
 # ---------- admin (send the password in an X-Admin-Password header) ----------

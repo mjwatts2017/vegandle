@@ -2,6 +2,7 @@
 
 ## 0.2.1-beta
 - Share text uses a full https link so it becomes clickable
+- Player count now shows players who played today (resets at midnight game time)
 - Desktop copies to the clipboard instead of opening the share dialog
 
 ## 0.2.0-beta
